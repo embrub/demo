@@ -1,0 +1,62 @@
+rules:
+  - id: java-unsanitized-user-input
+    languages: [java]
+    message: |
+      Potential XSS vulnerability: Untrusted user input is being output without proper sanitization.
+      Use proper sanitization (e.g., `Encode.forHtml()`) to prevent cross-site scripting (XSS).
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: "$UNTRUSTED_INPUT = $REQ.getParameter(...);"
+    pattern-sinks:
+      - pattern: "$RESP.getWriter().print($UNTRUSTED_INPUT);"
+      - pattern: "$RESP.getWriter().println($UNTRUSTED_INPUT);"
+    pattern-sanitizers:
+      - pattern: "Encode.forHtml($UNTRUSTED_INPUT);"
+
+  - id: java-comment-xss
+    languages: [java]
+    message: |
+      Potential XSS vulnerability in comment flow. Sanitize user input before printing.
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: "$COMMENT = $REQ.getParameter(\"comment\");"
+    pattern-sinks:
+      - pattern: "$RESP.getWriter().println(\"User Comment: \" + $COMMENT);"
+    pattern-sanitizers:
+      - pattern: "Encode.forHtml($COMMENT);"
+
+  - id: java-search-query-xss
+    languages: [java]
+    message: |
+      User-provided search query is used unsafely in response without proper escaping.
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: "$SEARCH = $REQ.getParameter(\"search\");"
+    pattern-sinks:
+      - pattern: "$RESP.getWriter().println(\"Search result for: \" + $SEARCH);"
+    pattern-sanitizers:
+      - pattern: "Encode.forHtml($SEARCH);"
+
+  - id: java-weak-validation-userid
+    languages: [java]
+    message: |
+      Weak validation in processUserId() allows tainted data through.
+      Ensure input is validated and sanitized.
+    severity: WARNING
+    pattern: |
+      if ($ID == null || $ID.isEmpty()) {
+        return "Invalid user ID";
+      }
+      return $ID;
+
+  - id: java-missing-sanitization-helper-methods
+    languages: [java]
+    message: |
+      Helper methods return untrusted input without sanitization.
+      Apply Encode.forHtml() before returning or using this data.
+    severity: WARNING
+    pattern: |
+      return $UNSANITIZED;
